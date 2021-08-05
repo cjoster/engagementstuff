@@ -1,0 +1,27 @@
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:data", "data")
+
+#@ if data.values.TKG_CLUSTER_ROLE == "workload":
+#@overlay/match by=overlay.subset({"kind":"KubeadmControlPlane"})
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+kind: KubeadmControlPlane
+spec:
+  kubeadmConfigSpec:
+    #@overlay/match missing_ok=True
+    preKubeadmCommands:
+      #@overlay/append
+      - #@ "echo vm.max_map_count=262144 > /etc/sysctl.d/90-tanzu-elasticsearch.conf; sysctl -p /etc/sysctl.d/90-tanzu-elasticsearch.conf"
+
+#@overlay/match by=overlay.subset({"kind":"KubeadmConfigTemplate"}),expects="1+"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: KubeadmConfigTemplate
+spec:
+  template:
+    spec:
+      #@overlay/match missing_ok=True
+      preKubeadmCommands:
+        #@overlay/append
+        - #@ "echo vm.max_map_count=262144 > /etc/sysctl.d/90-tanzu-elasticsearch.conf; sysctl -p /etc/sysctl.d/90-tanzu-elasticsearch.conf"
+#@ end
