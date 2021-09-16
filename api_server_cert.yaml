@@ -1,0 +1,28 @@
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:data", "data")
+
+#! This overlay lays down the a key and custom TLS certificate for the kube-api-server
+#! and configures the api server to use it.
+
+#! Trust your custom CA certificates on all Control Plane nodes.
+#@overlay/match by=overlay.subset({"kind":"KubeadmControlPlane"}),expects="1+"
+---
+spec:
+  #@overlay/match missing_ok=True
+  kubeadmConfigSpec:
+    files:
+      #@overlay/append
+      - content: #@ data.read("custom-apiserver.key")
+        owner: root:root
+        permissions: "0600"
+        path: /etc/kubernetes/pki/custom-apiserver.key
+      #@overlay/append
+      - content: #@ data.read("custom-apiserver.crt")
+        owner: root:root
+        permissions: "0644"
+        path: /etc/kubernetes/pki/custom-apiserver.crt
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          #@overlay/match missing_ok=True
+          tls-sni-cert-key: /etc/kubernetes/pki/custom-apiserver.crt,/etc/kubernetes/pki/custom-apiserver.key:foo.bar.com
