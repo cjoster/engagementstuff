@@ -5,8 +5,11 @@
 #! and configures the api server to use it. The format of the `tls-sni-cert-key` argument is
 #! /path/to/cert,/path/to/key[:dns.domain[,*.wildcard.domain[,...]]]. Note the
 #! colon between the x509 material and the *OPTIONAL* DNS names. If DNS names are not specified
-#! they will be extracted from the certificate. Specifying DNS names will
-#! override the ones extracted.
+#! they will be extracted from the certificate. Specifying DNS names will override the
+#! ones extracted.
+#!
+#! Intermediate certificates (and not the root CA) go in the cert file *after* the
+#! host certificate.
 
 #@overlay/match by=overlay.subset({"kind":"KubeadmControlPlane"}),expects="1+"
 ---
