@@ -2,7 +2,11 @@
 #@ load("@ytt:data", "data")
 
 #! This overlay lays down the a key and custom TLS certificate for the kube-api-server
-#! and configures the api server to use it.
+#! and configures the api server to use it. The format of the `tls-sni-cert-key` argument is
+#! /path/to/cert,/path/to/key[:dns.domain[,*.wildcard.domain[,...]]]. Note the
+#! colon between the x509 material and the *OPTIONAL* DNS names. If DNS names are not specified
+#! they will be extracted from the certificate. Specifying DNS names will
+#! override the ones extracted.
 
 #! Trust your custom CA certificates on all Control Plane nodes.
 #@overlay/match by=overlay.subset({"kind":"KubeadmControlPlane"}),expects="1+"
