@@ -8,7 +8,6 @@
 #! they will be extracted from the certificate. Specifying DNS names will
 #! override the ones extracted.
 
-#! Trust your custom CA certificates on all Control Plane nodes.
 #@overlay/match by=overlay.subset({"kind":"KubeadmControlPlane"}),expects="1+"
 ---
 spec:
