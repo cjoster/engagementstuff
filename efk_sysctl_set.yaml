@@ -2,7 +2,7 @@
 #@ load("@ytt:data", "data")
 
 #@ if data.values.TKG_CLUSTER_ROLE == "workload":
-#@overlay/match by=overlay.subset({"kind":"KubeadmControlPlane"})
+#@overlay/match by=overlay.subset({"kind":"KubeadmControlPlane"}),expects="1+"
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 kind: KubeadmControlPlane
