@@ -1,6 +1,25 @@
 #@ load("@ytt:overlay", "overlay")
 #@ load("@ytt:data", "data")
 
+#! ElasticSearch, by default, uses mmapfs to store the indexes
+#! to its database. The claimed reason for this is performance over
+#! the other available filesystem back-ends. The mmapfs is a filesystem
+#! layer on top of mmap(2) systemc call.
+#!
+#! Due to the way ElasticSearch
+#! utilizes this mechanism, the ElasticSearch developers *strongly suggest*
+#! increasing the kernel paramter vm.max_map_count to 262,144, from its
+#! default value of 65,536 on nodes that might be running ElasticSearch.
+#!
+#! In order to accomplish this, the upstream ElasticSearch helm chart
+#! makes use of a ****privileged, superuser pod, that changes the node's
+#! kernel configuration*** which is deemed wholy anacceptable by most
+#! security teams.
+#!
+#! This overlay accomplishes the same thing without needing to configure
+#! kubernetes to run superuser pods by making an reboot-sticky config
+#! file in /etc/sysctl.d and applying it using a preKubeAdm command.
+
 #@ if data.values.TKG_CLUSTER_ROLE == "workload":
 #@overlay/match by=overlay.subset({"kind":"KubeadmControlPlane"}),expects="1+"
 ---
