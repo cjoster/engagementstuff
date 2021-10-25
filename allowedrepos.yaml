@@ -19,7 +19,7 @@ spec:
   targets:
     - target: admission.k8s.gatekeeper.sh
       rego: |
-        package custompermittedrepos
+        package customallowedrepos
         
         violation[{"msg": msg}] {
             output := is_null(input.parameters.repos)
