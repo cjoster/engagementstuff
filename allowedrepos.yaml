@@ -30,7 +30,7 @@ spec:
             count(input.parameters.repos) == 0
             msg := "No permitted repos have been configured in your image pull policy (empty array)"
         }
-        
+
         all_containers[c] {
             c := input.review.object.spec.containers[_]
         }
@@ -44,20 +44,20 @@ spec:
             count(input.parameters.repos) > 0
         }
 
-        all_container[c] {
+        get_containers[c] {
             parameters_valid
             c := all_containers[_]
         }
         
         violation[{"msg": msg}] {
-            container := all_containers[_]
+            container := get_containers[_]
             path := split(container.image,"/")
             count(path) < 2
             msg := sprintf("container <%v> has no repository, explicit repository definition is required, allowed repos are %v", [container.name, input.parameters.repos])
         }
         
         violation[{"msg": msg}] {
-            container := all_containers[_]
+            container := get_containers[_]
             path := split(container.image,"/")
             count(path) > 1
             satisfied := [good | repo = input.parameters.repos[_]; good = (path[0] == repo)]
