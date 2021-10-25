@@ -1,0 +1,61 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: custom-allowed-repos
+spec:
+  crd:
+    spec:
+      names:
+        kind: Custom-Allowed-Repos
+      validation:
+        # Schema for the `parameters` field
+        openAPIV3Schema:
+          properties:
+            repos:
+              description: The list of prefixes a container image is allowed to have
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package customallowedrepos
+        
+        violation[{"msg": msg}] {
+            output := is_null(input.parameters.repos)
+            msg := "No permitted repos have been configured in your image pull policy (null array)"
+        }
+        
+        violation[{"msg": msg}] {
+            output := count(input.parameters.repos)
+            output = 0
+            msg := "No permitted repos have been configured in your image pull policy (empty array)"
+        }
+        
+        violation[{"msg": msg}] {
+        	container := input.review.object.spec.containers[_]
+            paths := split(container.image,"/")
+            count(paths) < 2
+            msg := sprintf("container <%v> has no repository, explicit repository definition is required", [container.name])
+        }
+        
+        violation[{"msg": msg}] {
+        	container := input.review.object.spec.initContainers[_]
+            paths := split(container.image,"/")
+            count(paths) < 2
+            msg := sprintf("container <%v> has no repository, explicit repository definition is required", [container.name])
+        }
+        
+        violation[{"msg": msg}] {
+            container := input.review.object.spec.containers[_]
+            satisfied := [good | repo = input.parameters.repos[_] ; good = startswith(container.image, repo)]
+            not any(satisfied)
+            msg := sprintf("container <%v> has an invalid image repo <%v>, allowed repos are %v", [container.name, container.image, input.parameters.repos])
+        }
+        
+        violation[{"msg": msg}] {
+            container := input.review.object.spec.initContainers[_]
+            satisfied := [good | repo = input.parameters.repos[_] ; good = startswith(container.image, repo)]
+            not any(satisfied)
+            msg := sprintf("container <%v> has an invalid image repo <%v>, allowed repos are %v", [container.name, container.image, input.parameters.repos])
+        }
