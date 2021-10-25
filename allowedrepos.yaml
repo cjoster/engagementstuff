@@ -22,35 +22,45 @@ spec:
         package customallowedrepos
         
         violation[{"msg": msg}] {
-            output := is_null(input.parameters.repos)
+            is_null(input.parameters.repos)
             msg := "No permitted repos have been configured in your image pull policy (null array)"
         }
         
         violation[{"msg": msg}] {
-            output := count(input.parameters.repos)
-            output == 0
+            count(input.parameters.repos) == 0
             msg := "No permitted repos have been configured in your image pull policy (empty array)"
         }
         
         all_containers[c] {
             c := input.review.object.spec.containers[_]
         }
+
         all_containers[c] {
             c := input.review.object.spec.initContainers[_]
+        }
+
+        parameters_valid {
+            input.parameters.repos
+            count(input.parameters.repos) > 0
+        }
+
+        all_container[c] {
+            parameters_valid
+            c := all_containers[_]
         }
         
         violation[{"msg": msg}] {
             container := all_containers[_]
-            paths := split(container.image,"/")
-            count(paths) < 2
+            path := split(container.image,"/")
+            count(path) < 2
             msg := sprintf("container <%v> has no repository, explicit repository definition is required, allowed repos are %v", [container.name, input.parameters.repos])
         }
         
         violation[{"msg": msg}] {
             container := all_containers[_]
-            paths := split(container.image,"/")
-            count(paths) > 1
-            satisfied := [good | repo = input.parameters.repos[_] ; good = startswith(container.image, repo)]
+            path := split(container.image,"/")
+            count(path) > 1
+            satisfied := [good | repo = input.parameters.repos[_]; good = (path[0] == repo)]
             not any(satisfied)
-            msg := sprintf("container <%v> has an invalid image repo <%v>, allowed repos are %v", [container.name, container.image, input.parameters.repos])
+            msg := sprintf("container <%v> has an invalid image repo <%v>, allowed repos are %v", [container.name, path[0], input.parameters.repos])
         }
