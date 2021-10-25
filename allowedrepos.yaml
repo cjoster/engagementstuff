@@ -28,7 +28,7 @@ spec:
         
         violation[{"msg": msg}] {
             output := count(input.parameters.repos)
-            output = 0
+            output == 0
             msg := "No permitted repos have been configured in your image pull policy (empty array)"
         }
         
