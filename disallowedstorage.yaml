@@ -44,3 +44,14 @@ spec:
             test := [ key | type = input.parameters.storagetypes[_]; key = has_key(spec, type) ]
             any(test)
         }
+        
+        evalulate() {
+            input.review.object.kind == "PersistentVolume"
+            input.parameters.storagetypes[_] == "all" 
+        }
+        
+        evalulate() {
+            input.review.object.kind == "Pod"
+            has_key(input.review.object.spec,"volumes")
+            input.parameters.storagetypes[_] == "all"
+        }
