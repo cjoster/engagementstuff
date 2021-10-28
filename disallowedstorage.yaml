@@ -1,0 +1,46 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: custom-disallowed-storage
+spec:
+  crd:
+    spec:
+      names:
+        kind: Custom-Disallowed-Storage
+      validation:
+        # Schema for the `parameters` field
+        openAPIV3Schema:
+          properties:
+            storagetypes:
+              description: The list of prefixes a container image is allowed to have
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package customdisallowedstorage
+        
+        has_key(x, k) { 
+            _ = x[k]
+        }
+        
+        violation[{"msg": msg}] {
+            evalulate
+            msg := sprintf("Disallowed storage type found. Disallowed types are [%v]", [concat(", ",input.parameters.storagetypes)])
+        }
+        
+        evalulate() {
+            input.review.object.kind == "Pod"
+            volumes := input.review.object.spec.volumes[_]
+            pvtypes := input.parameters.storagetypes
+            test := [ key | type = input.parameters.storagetypes[_]; key = has_key(volumes,type)]
+            any(test)
+        }
+        
+        evalulate() {
+            input.review.object.kind == "PersistentVolume"
+            spec := input.review.object.spec
+            test := [ key | type = input.parameters.storagetypes[_]; key = has_key(spec, type) ]
+            any(test)
+        }
