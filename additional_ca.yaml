@@ -24,7 +24,7 @@ spec:
       #! For Ubuntu
       #@overlay/append
       - '! which update-ca-certificates 2>/dev/null || (mv /etc/ssl/certs/tkg-custom-ca.pem /usr/local/share/ca-certificates/tkg-custom-ca.crt && update-ca-certificates)'
-      #! For Amazon
+      #! For Amazon !! Bundles are supported
       #@overlay/append
       - '! which update-ca-trust 2>/dev/null || (mv /etc/ssl/certs/tkg-custom-ca.pem /etc/pki/ca-trust/source/anchors/ && update-ca-trust)'
       
@@ -50,6 +50,6 @@ spec:
         #! For Ubuntu
         #@overlay/append
         - '! which update-ca-certificates 2>/dev/null || (mv /etc/ssl/certs/tkg-custom-ca.pem /usr/local/share/ca-certificates/tkg-custom-ca.crt && update-ca-certificates)'
-        #! For Amazon
+        #! For Amazon !! Bundles are supported
         #@overlay/append
         - '! which update-ca-trust 2>/dev/null || (mv /etc/ssl/certs/tkg-custom-ca.pem /etc/pki/ca-trust/source/anchors/ && update-ca-trust)'
