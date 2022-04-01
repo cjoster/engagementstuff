@@ -1,19 +1,19 @@
 #@ load("@ytt:overlay", "overlay")
 #@ load("@ytt:data", "data")
 
-#! ElasticSearch, by default, uses mmapfs to store the indexes
-#! to its database. The claimed reason for this is performance over
-#! the other available filesystem back-ends. The mmapfs is a filesystem
-#! layer on top of mmap(2) systemc call.
+#! ElasticSearch, by default, uses mmapfs to store the indexes to its
+#! database. The claimed reason for this is performance over the other
+#! available filesystem back-ends. The mmapfs is a filesystem layer on top
+#! top of mmap(2) system call.
 #!
-#! Due to the way ElasticSearch
-#! utilizes this mechanism, the ElasticSearch developers *strongly suggest*
-#! increasing the kernel paramter vm.max_map_count to 262,144, from its
-#! default value of 65,536 on nodes that might be running ElasticSearch.
+#! Due to the way ElasticSearch utilizes this mechanism, the ElasticSearch
+#! developers *strongly suggest* increasing the kernel parameter
+#! vm.max_map_count to 262,144, from its default value of 65,536 on nodes
+#! that might be running ElasticSearch.
 #!
 #! In order to accomplish this, the upstream ElasticSearch helm chart
 #! makes use of a ****privileged, superuser pod, that changes the node's
-#! kernel configuration*** which is deemed wholy anacceptable by most
+#! kernel configuration*** which is deemed wholy unacceptable by most
 #! security teams.
 #!
 #! This overlay accomplishes the same thing without needing to configure
