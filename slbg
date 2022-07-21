@@ -1,0 +1,12 @@
+slbg () 
+{ 
+    type gdb > /dev/null 2>&1 || { >&2 echo "ERROR: gdb is required to silence background processes."; return 1; }
+
+    local c=0;
+    for p in $(jobs -p); do
+        c=$((c+1));
+        gdb --batch-silent -ex "p (int)close(1)" -ex "p (int)open(\"/dev/null\", 1089, 0777)" -ex "p (int)close(2)" -ex "p (int)dup(1)" -p "${p}";
+        echo "Silenced process id ${p}" 1>&2;
+    done;
+    [ "${c}" -le "0" ] || echo "All background processes silenced."
+}
