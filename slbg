@@ -1,6 +1,6 @@
 # background process silencer
 #
-# add you .bashrc (or other startup file)
+# add to your .bashrc (or other startup file)
 # and then running `slbg` will silence all
 # running background processes
 #
