@@ -1,3 +1,15 @@
+# background process silencer
+#
+# add you .bashrc (or other startup file)
+# and then running `slbg` will silence all
+# running background processes
+#
+# Example:
+#
+# $ while true; do sleep .1; date; done &
+#
+# $ slgb
+
 slbg () 
 { 
     type gdb > /dev/null 2>&1 || { >&2 echo "ERROR: gdb is required to silence background processes."; return 1; }
