@@ -1,0 +1,75 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: custom-allowed-repos
+spec:
+  crd:
+    spec:
+      names:
+        kind: Custom-validate-certificate-requests
+      validation:
+        # Schema for the `parameters` field
+        openAPIV3Schema:
+          properties:
+            max_hours:
+              description: Maximum number of hours a requested certificate can be valid for.
+              type: integer
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package kubernetes.certificate.validation
+        
+        import future.keywords.contains
+        import future.keywords.if
+        
+        deny contains msg if {
+                not input.parameters.max_hours
+                msg := "Certificate policy required configuration \"max_hours\" does not exist. This is a platform bug."
+        }
+        
+        deny contains msg if {
+       		not to_number(input.parameters.max_hours)
+                msg := sprintf("Certificate policy configuration paramater \"max_hours\" has invalid value \"%v\". This is a platform bug.", [ input.parameters.max_hours ] ) 
+        }
+        
+        deny contains msg if {
+       		to_number(input.parameters.max_hours) > 720
+                msg := sprintf("Certificate policy configuration paramater \"max_hours\" exceeds hard-coded maximum of 720 hours: \"%v\". This is a platform bug.", [ input.parameters.max_hours ] ) 
+        }
+        
+        deny contains msg if {
+                to_number(input.parameters.max_hours) < 1 
+                msg := sprintf("Certificate policy configuration paramater \"max_hours\" is below minimum certificate refresh rate of 1 hour: \"%v\". This is a platform bug.", [ input.parameters.max_hours ] ) 
+        }
+        
+        deny contains msg if {
+                not input.request.object.spec.duration
+                msg := sprintf("Certificate <%v> missing required parameter spec.duration.", [ input.request.object.metadata.name ])
+        }
+        
+        deny contains msg if {
+                not time.parse_duration_ns(input.request.object.spec.duration)
+                msg := sprintf("Certificate <%v> has unparsable spec.duration: \"%v\"", [ input.request.object.metadata.name, input.request.object.spec.duration ])
+        }
+        
+        deny contains msg if {
+                time.parse_duration_ns(input.request.object.spec.duration)/(1000000000*3600) < 1 
+                msg := sprintf("Certificate <%v> has spec.duration less than one hour: \"%v\"", [ input.request.object.metadata.name, input.request.object.spec.duration ])
+        }
+        
+        deny contains msg if {
+                hours := time.parse_duration_ns(input.request.object.spec.duration)/(1000000000*3600) 
+                hours > to_number(input.parameters.max_hours)
+                msg := sprintf("Certificate <%v> has spec.duration greater than platform-configured maximum duration of %v hours: \"%v\"", [ input.request.object.metadata.name, input.parameters.max_hours, input.request.object.spec.duration ])
+        }
+        
+        deny contains msg if {
+                input.request.object.spec.isCA
+                not is_boolean(input.request.object.spec.isCA)
+                msg := sprintf("Certificate <%v> has non-boolean spec.isCA: \"%v\"", [ input.request.object.metadata.name, input.request.object.spec.isCA ])
+        }    
+        
+        deny contains msg if {
+                input.request.object.spec.isCA
+                msg := sprintf("Certificate <%v> spec.isCA must be false.", [ input.request.object.metadata.name ])
+        }
