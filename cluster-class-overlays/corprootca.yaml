@@ -1,0 +1,73 @@
+#@ load("@ytt:overlay", "overlay")
+
+#@overlay/match by=overlay.subset({"kind":"ClusterClass"})
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: tkg-vsphere-default-v1.1.0-extended
+spec:
+  variables:
+  - name: corpRootCABase64
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+  patches:
+  - name: corpRootCA
+    enabledIf: '{{ not (empty .corpRootCABase64) }}'
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-
+        value: '! which rehash_ca_certificates.sh 2>/dev/null || rehash_ca_certificates.sh'
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-
+        value: '! which update-ca-certificates 2>/dev/null || (mv /etc/ssl/certs/corp-root-ca.pem
+          /usr/local/share/ca-certificates/corp-root-ca.crt && update-ca-certificates)'
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-
+        value: '! which update-ca-trust 2>/dev/null || (update-ca-trust force-enable
+          && mv /etc/ssl/certs/corp-root-ca.pem /etc/pki/ca-trust/source/anchors/corp-root-ca.crt
+          && update-ca-trust extract)'
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/files/-
+        valueFrom:
+          template: |
+            path: /etc/ssl/certs/corp-root-ca.pem
+            content: {{ .corpRootCABase64 }}
+            encoding: base64
+            permissions: "0444"
+    - selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - tkg-worker
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/files/-
+        valueFrom:
+          template: |
+            path: /etc/ssl/certs/corp-root-ca.pem
+            content: {{ .corpRootCABase64 }}
+            encoding: base64
+            permissions: "0444"
+      - op: add
+        path: /spec/template/spec/preKubeadmCommands/-
+        value: '! which rehash_ca_certificates.sh 2>/dev/null || rehash_ca_certificates.sh'
+      - op: add
+        path: /spec/template/spec/preKubeadmCommands/-
+        value: '! which update-ca-certificates 2>/dev/null || (mv /etc/ssl/certs/corp-root-ca.pem
+          /usr/local/share/ca-certificates/corp-root-ca.crt && update-ca-certificates)'
+      - op: add
+        path: /spec/template/spec/preKubeadmCommands/-
+        value: '! which update-ca-trust 2>/dev/null || (update-ca-trust force-enable
+          && mv /etc/ssl/certs/corp-root-ca.pem /etc/pki/ca-trust/source/anchors/corp-root-ca.crt
+          && update-ca-trust extract)'

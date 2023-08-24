@@ -1,0 +1,47 @@
+#@ load("@ytt:overlay", "overlay")
+
+#@overlay/match by=overlay.subset({"kind":"ClusterClass"})
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: tkg-vsphere-default-v1.1.0-extended
+spec:
+  variables:
+  - name: dotLocalTLD
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+  patches:
+  - name: dotLocalTLD
+    enabledIf: '{{ not (empty .dotLocalTLD) }}'
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-
+        valueFrom:
+          template: sed -i "/Network/a Domains = {{ .dotLocalTLD }}" /etc/systemd/network/10-eth0.network
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-
+        value: systemctl restart systemd-networkd systemd-resolved
+    - selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - tkg-worker
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/preKubeadmCommands/-
+        valueFrom:
+          template: sed -i "/Network/a Domains = {{ .dotLocalTLD }}" /etc/systemd/network/10-eth0.network
+      - op: add
+        path: /spec/template/spec/preKubeadmCommands/-
+        value: systemctl restart systemd-networkd systemd-resolved
