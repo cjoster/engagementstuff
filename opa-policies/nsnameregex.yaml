@@ -1,0 +1,64 @@
+---
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: nsnameregex
+  annotations:
+    description: Allows require/prohibit based on regular expressions run on namespace names
+spec:
+  crd:
+    spec:
+      names:
+        kind: NsNameRegex
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            display_invalid:
+              type: boolean
+              description: >-
+                Whether or not to display invalid regular expressions to the user. This could leak sensitive
+                information to an end-user. Defaults to false.
+            regexes:
+              type: array
+              description: "List of regexes that must-not match a namespace name."
+              items:
+                type: string
+            errstring:
+              type: string
+              description: "Error string to display when one of the regexes matches or fails to match."
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package imageregex
+        import future.keywords.if
+
+        violation[{"msg": msg, "details": {}}]{
+          not input.parameters.regexes
+          msg := "Policy does not have any parameters. Aborting."
+        }
+     
+        violation[{"msg": msg, "details": {}}]{
+            not count(input.parameters.regexes) >= 1
+            msg := "Policy does not have at least one regular expression. Aborting."
+        }
+
+        violation[{"msg": msg, "details": {}}]{
+            input.parameters.display_invalid
+            invalid := {input.parameters.regexes[x]| regex.is_valid(input.parameters.regexes[x]) == false}
+            msg := sprintf("Policy has one or more invalid regular expressions: %v. This is a misconfiguration. Please contact your cloud administrators.", [ invalid ])
+        } 
+
+        violation[{"msg": msg, "details": {}}]{
+            not input.parameters.display_invalid
+            count({x | input.parameters.regexes[x]; regex.is_valid(input.parameters.regexes[x])}) != count(input.parameters.regexes)
+            msg := "Policy has one or more invalid regular expressions. This is a misconfiguration. Please contact your cloud administrators."
+        }
+
+        violation[{"msg": msg, "details": {}}]{
+            input.review.object.kind == "Namespace"
+            name := input.review.name
+            regexes := input.parameters.regexes
+            count({x | regexes[x]; regex.match(regexes[x], name)}) > 0
+            msg := sprintf("Namespace <%v>: %v", [ name, input.parameters.errstring ])
+        }
