@@ -56,6 +56,7 @@ spec:
         }
 
         violation[{"msg": msg, "details": {}}]{
+            count({x | input.parameters.regexes[x]; regex.is_valid(input.parameters.regexes[x])}) == count(input.parameters.regexes)
             input.review.object.kind == "Namespace"
             name := input.review.name
             regexes := input.parameters.regexes
