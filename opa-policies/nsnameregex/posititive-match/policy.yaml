@@ -1,0 +1,16 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: NsNameRegex
+metadata:
+  name: corp-namespace-rules
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Namespace"]
+  parameters:
+    #   This parameter is useful for debugging, but can leak sensitive information
+    #   to an end user. Use with caution.
+    # display_invalid: true
+    errstring: "Namespaces must be named \"afcu-*-app\"."
+    regexes:
+    - '^afcu-.*-app'
